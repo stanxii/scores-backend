@@ -43,6 +43,9 @@ class ScoresAPI:
         except Exception as ex:
             logging.error(ex)
 
+        if rank == '':
+            rank = 'Sorry my dear, I really tried, but cannot provide your requested data'
+
         return rank
 
     def isSessionExpired(self):
