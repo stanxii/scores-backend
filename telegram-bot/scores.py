@@ -7,6 +7,7 @@ import logging
 
 class ScoresAPI:
     scores_url = 'https://scores.raphi011.com/api'
+    cookies = None
 
     ranks = {
         1: 'Master',
@@ -53,10 +54,12 @@ class ScoresAPI:
             for c in self.cookies:
                 if c.expires < time.time():
                     self.getScoresSession()
+        else:
+            self.getScoresSession()
 
     def getScoresSession(self):
         try:
-            logging.info('requesting new cookie')
+            logging.warning('requesting new cookie')
             self.cookies = requests.post('{}/pwAuth'.format(self.scores_url),
                                          json={'email': scores_user, 'password': scores_pw},
                                          allow_redirects=False).cookies
