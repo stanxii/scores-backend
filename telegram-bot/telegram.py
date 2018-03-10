@@ -42,7 +42,7 @@ class TelegramBot:
                                                         # the message leads to an exception
 
                     logging.debug(json.dumps(update, sort_keys=True, indent=4, separators=(',', ': ')))
-                    logging.info('received update id {}'.format(update['update_id']))
+                    logging.warning('received update id {}'.format(update['update_id']))
 
                     if 'message' in update:
                         self.handleMessage(update)
