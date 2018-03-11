@@ -14,18 +14,13 @@ class TelegramBot:
         self.debug = debug
 
     def handleMessage(self, msg):
-        text = msg['message']['text'].split(' ')
+        cmd = msg['message']['command']
 
-        if text[0] == '/start' and msg['message']['chat']['type'] == 'private' \
-                or text[0] == '/start@bvbscoresbot':
-
+        if cmd[0] == 'start':
             self.sendMessage('Hello! I am your scores bot :)', msg['message']['chat']['id'])
 
-        elif text[0] == '/rank' and msg['message']['chat']['type'] == 'private' \
-                or text[0] == '/rank@bvbscoresbot':
-
-            filter = text[1] if len(text) > 1 and text[1] in ['day', 'month', 'year'] else None
-
+        elif cmd[0] == 'rank':
+            filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
             self.sendMessage(self.scores.getRank(filter), msg['message']['chat']['id'])
 
     def getMessages(self):
@@ -45,7 +40,9 @@ class TelegramBot:
                     logging.warning('received update id {}'.format(update['update_id']))
 
                     if 'message' in update:
-                        self.handleMessage(update)
+                        logging.warning('received message from {}'.format(update['message']['from']))
+                        if self.setArgs(update):
+                            self.handleMessage(update)
                         # think about async handling of messages, but not necessary for now
 
             except Exception as ex:
@@ -58,3 +55,21 @@ class TelegramBot:
             requests.post('{}/sendMessage'.format(self.telegram_url), data={'chat_id': chatid, 'text': msg})
         except Exception as ex:
             logging.error(ex)
+
+    def setArgs(self, msg):
+        t = msg['message']['text'].split(' ')
+
+        if t[0][0] != '/':
+            return False
+
+        h = t[0].split('@')
+
+        if not (len(h) == 1 and msg['message']['chat']['type'] == 'private' or
+                len(h) >  1 and h[1] in ['bvbscoresbot', 'testbvbscoresbot']):
+            return False
+
+        t[0] = h[0][1:]
+
+        msg['message']['command'] = t
+
+        return True
