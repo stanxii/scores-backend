@@ -16,8 +16,12 @@ class ScoresAPI:
     }
 
     players = {
-        505934690: 5,
-        26409079: 1,
+        505934690: 5, # Dom
+        26409079: 1,  # Raffi
+        147596787: 4,  # Richie
+        404242664: 9,  # Consti
+        287950001: 3,  # Luki
+        # id 7 Gerli missing
     }
 
     def __init__(self):
