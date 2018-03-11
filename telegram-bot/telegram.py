@@ -23,6 +23,9 @@ class TelegramBot:
             filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
             self.sendMessage(self.scores.getRank(filter), msg['message']['chat']['id'])
 
+        elif cmd[0] == 'goal':
+            self.sendMessage(self.scores.getGoal(msg), msg['message']['chat']['id'])
+
     def getMessages(self):
         offset = 0
 
