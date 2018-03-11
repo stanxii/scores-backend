@@ -8,7 +8,7 @@ import logging
 '''
 telegram commands:
 
-ranks - Show current rank with filter
+top3 - Show current rank with filter
 goal - Show players goal
 '''
 
@@ -23,7 +23,7 @@ class TelegramBot:
     def handleMessage(self, msg):
         cmd = msg['message']['command']
 
-        if cmd[0] == 'ranks':
+        if cmd[0] == 'top3':
             filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
             self.sendMessage(self.scores.getRanks(filter), msg['message']['chat']['id'])
 
