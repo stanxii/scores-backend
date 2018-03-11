@@ -5,6 +5,13 @@ import time
 from scores import ScoresAPI
 import logging
 
+'''
+telegram commands:
+
+ranks - Show current rank with filter
+goal - Show players goal
+'''
+
 class TelegramBot:
     telegram_url = 'https://api.telegram.org/bot{}'.format(telegram_token)
     messagequeue = []
@@ -16,12 +23,9 @@ class TelegramBot:
     def handleMessage(self, msg):
         cmd = msg['message']['command']
 
-        if cmd[0] == 'start':
-            self.sendMessage('Hello! I am your scores bot :)', msg['message']['chat']['id'])
-
-        elif cmd[0] == 'rank':
+        if cmd[0] == 'ranks':
             filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
-            self.sendMessage(self.scores.getRank(filter), msg['message']['chat']['id'])
+            self.sendMessage(self.scores.getRanks(filter), msg['message']['chat']['id'])
 
         elif cmd[0] == 'goal':
             self.sendMessage(self.scores.getGoal(msg), msg['message']['chat']['id'])
