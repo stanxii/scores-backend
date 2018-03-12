@@ -68,11 +68,11 @@ class ScoresAPI:
 
         else:
             senderperc = [scores['data'][senderindex]['played'], scores['data'][senderindex]['gamesWon']]
-            goalperc = scores['data'][senderindex - 1]['percentageWon']
+            goalperc = [scores['data'][senderindex - 1]['played'], scores['data'][senderindex - 1]['gamesWon']]
 
             wins = 1
 
-            while (senderperc[1] + wins) / senderperc[0] * 100 < goalperc:
+            while (senderperc[1] + wins) / (senderperc[0] + wins) < goalperc[1] / goalperc[0]:
                 wins += 1
 
             return '{}, to reach rank {} you need to win {} match{}...'.format(
