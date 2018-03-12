@@ -50,7 +50,6 @@ class ScoresAPI:
             return 'Sorry, I don\'t know you yet'
 
         senderid = self.players[msg['message']['from']['id']]
-        senderid = 1
 
         self.isSessionExpired()
         scores = self.loadStats()
