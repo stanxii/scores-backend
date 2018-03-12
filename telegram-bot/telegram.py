@@ -70,6 +70,10 @@ class TelegramBot:
 
         h = t[0].split('@')
 
+        if not (len(h) == 1 or
+                len(h) >  1 and h[1] in ['bvbscoresbot', 'testbvbscoresbot']):
+            return False
+
         t[0] = h[0][1:]
 
         msg['message']['command'] = t
