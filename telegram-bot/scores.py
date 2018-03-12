@@ -50,6 +50,7 @@ class ScoresAPI:
             return 'Sorry, I don\'t know you yet'
 
         senderid = self.players[msg['message']['from']['id']]
+        senderid = 1
 
         self.isSessionExpired()
         scores = self.loadStats()
@@ -75,10 +76,11 @@ class ScoresAPI:
             while (senderperc[1] + wins) / senderperc[0] * 100 < goalperc:
                 wins += 1
 
-            return '{}, to reach rank {} you\'ve got to win {} matches...'.format(
+            return '{}, to reach rank {} you need to win {} match{}...'.format(
                 scores['data'][senderindex]['player']['name'],
                 senderindex,
-                wins
+                wins,
+                'es' if wins > 1 else ''
             )
 
     def loadStats(self, filter=None):
