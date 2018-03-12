@@ -47,7 +47,6 @@ class TelegramBot:
                     logging.warning('received update id {}'.format(update['update_id']))
 
                     if 'message' in update:
-                        logging.warning('received message from {}'.format(update['message']['from']))
                         if self.setArgs(update):
                             self.handleMessage(update)
                         # think about async handling of messages, but not necessary for now
