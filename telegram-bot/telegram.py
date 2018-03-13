@@ -79,3 +79,9 @@ class TelegramBot:
         msg['message']['command'] = t
 
         return True
+
+
+logging.basicConfig(level=logging.DEBUG)
+if __name__ == '__main__':
+    t = TelegramBot()
+    t.getMessages()
