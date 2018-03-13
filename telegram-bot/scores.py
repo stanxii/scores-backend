@@ -24,12 +24,39 @@ class ScoresAPI:
         187903526: 7   # Gerli
     }
 
-    def __init__(self):
+    goals = {
+        5 : { 'win': 3 }
+    }
+
+    def __init__(self, telegram):
         self.getScoresSession()
+        self.telegram = telegram
+
+    def handleTelegramMessage(self, msg):
+        self.isSessionExpired()
+
+        cmd = msg['message']['command']
+
+        playerid = self.isKnown(msg)
+        chatid = msg['message']['chat']['id']
+
+        if cmd[0] == 'top3':
+            filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
+            self.telegram.sendMessage(self.getRanks(filter), chatid)
+
+        elif cmd[0] == 'mygoal' and playerid:
+            self.telegram.sendMessage(self.getGoal(playerid), chatid)
+
+
+    def isKnown(self, msg):
+        if msg['message']['from']['id'] not in self.players:
+            self.telegram.sendMessage('Sorry, I don\'t know you yet', msg['message']['chat']['id'])
+            return False
+
+        return self.players[msg['message']['from']['id']]
+
 
     def getRanks(self, filter=None):
-
-        self.isSessionExpired()
         scores = self.loadStats(filter)
 
         ranks = ''
@@ -45,12 +72,7 @@ class ScoresAPI:
 
         return ranks
 
-    def getGoal(self, msg):
-        if msg['message']['from']['id'] not in self.players:
-            return 'Sorry, I don\'t know you yet'
-
-        senderid = self.players[msg['message']['from']['id']]
-
+    def getGoal(self, senderid):
         self.isSessionExpired()
         scores = self.loadStats()
 

@@ -17,18 +17,8 @@ class TelegramBot:
     messagequeue = []
 
     def __init__(self, debug=False):
-        self.scores = ScoresAPI()
+        self.scores = ScoresAPI(self)
         self.debug = debug
-
-    def handleMessage(self, msg):
-        cmd = msg['message']['command']
-
-        if cmd[0] == 'top3':
-            filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
-            self.sendMessage(self.scores.getRanks(filter), msg['message']['chat']['id'])
-
-        elif cmd[0] == 'mygoal':
-            self.sendMessage(self.scores.getGoal(msg), msg['message']['chat']['id'])
 
     def getMessages(self):
         offset = 0
@@ -48,7 +38,7 @@ class TelegramBot:
 
                     if 'message' in update:
                         if self.setArgs(update):
-                            self.handleMessage(update)
+                            self.scores.handleTelegramMessage(update)
                         # think about async handling of messages, but not necessary for now
 
             except Exception as ex:
