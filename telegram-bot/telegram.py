@@ -8,8 +8,9 @@ import logging
 '''
 telegram commands:
 
+help - Show some help
 top3 - Show current rank with filter
-mygoal - Show players goal
+setgoal - Set players goal
 '''
 
 class TelegramBot:

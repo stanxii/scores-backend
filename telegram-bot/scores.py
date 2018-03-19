@@ -11,7 +11,7 @@ from jobs import Jobs
 
 class Player:
     def __init__(self, name, telegramid, scoresid):
-        self.name = name,
+        self.name = name
         self.telegramid = telegramid
         self.scoresid = scoresid
 
