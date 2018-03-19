@@ -3,6 +3,17 @@ import json
 from auth import scores_user, scores_pw
 import time
 import logging
+import time
+from datetime import datetime
+import _thread
+from dateutil.parser import parse
+from jobs import Jobs
+
+class Player:
+    def __init__(self, name, telegramid, scoresid):
+        self.name = name,
+        self.telegramid = telegramid
+        self.scoresid = scoresid
 
 class ScoresAPI:
     scores_url = 'https://scores.raphi011.com/api'
@@ -15,45 +26,46 @@ class ScoresAPI:
         None: 'all'
     }
 
-    players = {
-        505934690: 5,  # Dom
-        26409079: 1,   # Raffi
-        147596787: 4,  # Richie
-        404242664: 9,  # Consti
-        287950001: 3,  # Luki
-        187903526: 7   # Gerli
-    }
-
-    goals = {
-        5 : { 'win': 3 }
-    }
-
     def __init__(self, telegram):
         self.getScoresSession()
         self.telegram = telegram
+
+        self.players = []
+        self.players.append(Player('Raffi', 26409079, 1 ))
+        self.players.append(Player('Dom', 505934690, 5 ))
+        self.players.append(Player('Richie', 147596787, 4 ))
+        self.players.append(Player('Consti', 404242664, 9 ))
+        self.players.append(Player('Luki', 287950001, 3 ))
+        self.players.append(Player('Gerli', 187903526, 7 ))
+
+        self.jobs = Jobs(self, telegram)
 
     def handleTelegramMessage(self, msg):
         self.isSessionExpired()
 
         cmd = msg['message']['command']
 
-        playerid = self.isKnown(msg)
+        player = self.getPlayer(telegramid=msg['message']['from']['id'])
         chatid = msg['message']['chat']['id']
 
-        if cmd[0] == 'top3':
+        if cmd[0] == 'help':
+            self.telegram.sendMessage(self.getHelp(), chatid)
+
+        elif cmd[0] == 'top3':
             filter = cmd[1] if len(cmd) > 1 and cmd[1] in ['day', 'month', 'year'] else None
             self.telegram.sendMessage(self.getRanks(filter), chatid)
 
-        elif cmd[0] == 'mygoal' and playerid:
-            self.telegram.sendMessage(self.getGoal(playerid), chatid)
+        elif cmd[0] == 'setgoal' and player:
+            self.telegram.sendMessage(self.setGoal(player, cmd, chatid), chatid)
 
+        elif not player:
+            self.telegram.sendMessage('Sorry, I don\'t know you yet', chatid)
 
-    def isKnown(self, msg):
-        if msg['message']['from']['id'] not in self.players:
-            self.telegram.sendMessage('Sorry, I don\'t know you yet', msg['message']['chat']['id'])
-            return False
-
-        return self.players[msg['message']['from']['id']]
+    def getHelp(self):
+        return '''Hey there! I accept the following commands:
+/top3 - shows the current over all top3
+/setgoal wins <count> - you can set a goal and I will write you when you reached it
+'''
 
 
     def getRanks(self, filter=None):
@@ -72,37 +84,60 @@ class ScoresAPI:
 
         return ranks
 
-    def getGoal(self, senderid):
-        self.isSessionExpired()
-        scores = self.loadStats()
+    def watchGoal(self, job):
+        matches = self.loadMatches()
+        #stats = self.loadStats()
 
-        if not scores:
-            return 'Sorry my dear, I really tried, but cannot provide your requested data :('
+        if job['type'] == 'wins':
+            wins = 0
+            for m in matches['data']:
+                if parse(m['createdAt']).replace(tzinfo=None) > datetime.now().replace(hour=0, minute=0):
+                    if int(m['scoreTeam1']) > int(m['scoreTeam2']) and \
+                            (self.getPlayer(scoresid=m['team1']['player1Id']) == job['player'] or \
+                             self.getPlayer(scoresid=m['team1']['player2Id']) == job['player']):
+                        wins += 1
+                    elif int(m['scoreTeam1']) < int(m['scoreTeam2']) and \
+                            (self.getPlayer(scoresid=m['team2']['player1Id']) == job['player'] or \
+                             self.getPlayer(scoresid=m['team2']['player2Id']) == job['player']):
+                        wins += 1
 
-        senderindex = 0
-        while scores['data'][senderindex]['playerId'] != senderid:
-            senderindex += 1
+            if wins >= job['value']:
+                self.telegram.sendMessage('Congratulations {}, you have reached your goal!'.format(job['player'].name), job['chatid'])
+                return True
 
-        if senderindex == 0:
-            return 'You are already the hero, {}! No goals for you...'.format(
-                scores['data'][senderindex]['player']['name']
-            )
+            return False
+
+        return True
+
+
+    def setGoal(self, player, cmd, chatid):
+
+        if cmd[1] in ['wins', 'rank', 'percent'] and cmd[2].isdigit():
+
+            goal = {
+                'delegate': self.watchGoal,
+                'type': cmd[1],
+                'value': int(cmd[2]),
+                'player': player,
+                'until': datetime.now().replace(hour=22, minute=0),
+                'chatid': chatid
+            }
+
+            self.jobs.appendJob(goal)
+
+            return 'Thanks {}, your goal is saved! You\'ll hear from me ;)'.format(player.name)
 
         else:
-            senderperc = [scores['data'][senderindex]['played'], scores['data'][senderindex]['gamesWon']]
-            goalperc = [scores['data'][senderindex - 1]['played'], scores['data'][senderindex - 1]['gamesWon']]
+            return 'Sorry {}, I can\'t set that goal'.format(player.name)
 
-            wins = 1
+    def getPlayer(self, scoresid=None, telegramid=None):
+        for p in self.players:
+            if scoresid and p.scoresid == scoresid:
+                return p
+            if telegramid and p.telegramid == telegramid:
+                return p
 
-            while (senderperc[1] + wins) / (senderperc[0] + wins) < goalperc[1] / goalperc[0]:
-                wins += 1
-
-            return '{}, to reach rank {} you need to win {} match{}...'.format(
-                scores['data'][senderindex]['player']['name'],
-                senderindex,
-                wins,
-                'es' if wins > 1 else ''
-            )
+        return None
 
     def loadStats(self, filter=None):
         try:
@@ -116,6 +151,18 @@ class ScoresAPI:
             logging.error(ex)
 
         return None
+
+    def loadMatches(self):
+        try:
+            matches = requests.get('{}/matches'.format(self.scores_url), cookies=self.cookies).json()
+            logging.debug(json.dumps(matches, sort_keys=True, indent=4, separators=(',', ': ')))
+
+            return matches
+        except Exception as ex:
+            logging.error(ex)
+
+        return None
+
 
     def isSessionExpired(self):
         if self.cookies:

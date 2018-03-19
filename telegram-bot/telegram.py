@@ -1,4 +1,4 @@
-from auth import telegram_token
+from auth import telegram_token, loglevel
 import requests
 import json
 import time
@@ -71,7 +71,7 @@ class TelegramBot:
         return True
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=loglevel)
 if __name__ == '__main__':
     t = TelegramBot()
     t.getMessages()
