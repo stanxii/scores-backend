@@ -64,7 +64,7 @@ class ScoresAPI:
     def getHelp(self):
         return '''Hey there! I accept the following commands:
 /top3 - shows the current over all top3
-/setgoal wins <count> - you can set a goal and I will write you when you reached it
+/setgoal [wins|percent|rank] <value> - you can set a goal and I will write you when you reached it
 '''
 
 
@@ -84,30 +84,85 @@ class ScoresAPI:
 
         return ranks
 
-    def watchGoal(self, job):
-        matches = self.loadMatches()
-        #stats = self.loadStats()
+    def watchGoal(self, job, delete):
 
         if job['type'] == 'wins':
-            wins = 0
-            for m in matches['data']:
-                if parse(m['createdAt']).replace(tzinfo=None) > datetime.now().replace(hour=0, minute=0):
-                    if int(m['scoreTeam1']) > int(m['scoreTeam2']) and \
-                            (self.getPlayer(scoresid=m['team1']['player1Id']) == job['player'] or \
-                             self.getPlayer(scoresid=m['team1']['player2Id']) == job['player']):
-                        wins += 1
-                    elif int(m['scoreTeam1']) < int(m['scoreTeam2']) and \
-                            (self.getPlayer(scoresid=m['team2']['player1Id']) == job['player'] or \
-                             self.getPlayer(scoresid=m['team2']['player2Id']) == job['player']):
-                        wins += 1
+            wins, looses = self.getRatio(self.loadMatches(), job)
+
+            logging.debug('job wins: {}'.format(wins))
 
             if wins >= job['value']:
-                self.telegram.sendMessage('Congratulations {}, you have reached your goal!'.format(job['player'].name), job['chatid'])
+                self.telegram.sendMessage('Congratulations {}, you have reached your goal and won {} matches!'.format(job['player'].name, wins), job['chatid'])
+                return True
+
+            if delete:
+                self.telegram.sendMessage('Sorry {}, you failed! You won {} matches today...'.format(job['player'].name, wins), job['chatid'])
+                return True
+
+            return False
+
+        elif job['type'] == 'percent':
+            wins, looses = self.getRatio(self.loadMatches(), job)
+
+            percent = wins / (wins+looses) * 100
+            logging.debug('job percent: {}'.format(percent))
+
+            if percent >= job['value']:
+                self.telegram.sendMessage('Congratulations {}, you have reached your goal and won {} %!'.format(job['player'].name, percent), job['chatid'])
+                return True
+
+            if delete:
+                self.telegram.sendMessage('Sorry {}, you failed! You won {} % today...'.format(job['player'].name, percent), job['chatid'])
+                return True
+
+            return False
+
+        elif job['type'] == 'rank':
+            stats = self.loadStats()
+
+            rank = 0
+            while self.getPlayer(scoresid=stats['data'][rank]['playerId']) != job['player']:
+                rank += 1
+
+            rank += 1
+
+            logging.debug('job rank: {}'.format(rank))
+
+            if rank == job['value']:
+                self.telegram.sendMessage('Congratulations {}, you have reached your goal and made rank {}!'.format(job['player'].name, rank), job['chatid'])
+                return True
+
+            if delete:
+                self.telegram.sendMessage('Sorry {}, you failed! You only made rank {}...'.format(job['player'].name, rank), job['chatid'])
                 return True
 
             return False
 
         return True
+
+    def getRatio(self, matches, job):
+        wins = 0
+        looses = 0
+        for m in matches['data']:
+            if parse(m['createdAt']).replace(tzinfo=None) > datetime.now().replace(hour=0, minute=0):
+                if int(m['scoreTeam1']) > int(m['scoreTeam2']) and \
+                        (self.getPlayer(scoresid=m['team1']['player1Id']) == job['player'] or
+                                 self.getPlayer(scoresid=m['team1']['player2Id']) == job['player']):
+                    wins += 1
+                elif int(m['scoreTeam1']) < int(m['scoreTeam2']) and \
+                        (self.getPlayer(scoresid=m['team2']['player1Id']) == job['player'] or
+                                 self.getPlayer(scoresid=m['team2']['player2Id']) == job['player']):
+                    wins += 1
+                elif int(m['scoreTeam1']) < int(m['scoreTeam2']) and \
+                        (self.getPlayer(scoresid=m['team1']['player1Id']) == job['player'] or
+                                 self.getPlayer(scoresid=m['team1']['player2Id']) == job['player']):
+                    looses += 1
+                elif int(m['scoreTeam1']) > int(m['scoreTeam2']) and \
+                        (self.getPlayer(scoresid=m['team2']['player1Id']) == job['player'] or
+                                 self.getPlayer(scoresid=m['team2']['player2Id']) == job['player']):
+                    looses += 1
+
+        return wins, looses
 
 
     def setGoal(self, player, cmd, chatid):
@@ -119,9 +174,14 @@ class ScoresAPI:
                 'type': cmd[1],
                 'value': int(cmd[2]),
                 'player': player,
-                'until': datetime.now().replace(hour=22, minute=0),
                 'chatid': chatid
             }
+
+            if cmd[1] in ['rank', 'percent']:
+                goal['once'] = datetime.now().replace(hour=22, minute=0)
+            else:
+                goal['until'] = datetime.now().replace(hour=22, minute=0)
+
 
             self.jobs.appendJob(goal)
 

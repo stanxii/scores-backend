@@ -17,10 +17,16 @@ class Jobs:
 
     def handleJobs(self):
         for j in self.jobs:
-            if 'until' in j and datetime.now() < j['until']:
-                d = j['delegate']
-                delete = d(j)
-            else:
+            delete = False
+            try:
+                if 'until' in j:
+                    d = j['delegate']
+                    delete = d(j, datetime.now() > j['until'])
+                elif 'once' in j and datetime.now() > j['once']:
+                    d = j['delegate']
+                    delete = d(j, True)
+            except Exception as ex:
+                logging.error(ex)
                 delete = True
 
             if delete:
