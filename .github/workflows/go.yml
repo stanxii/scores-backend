@@ -22,12 +22,12 @@ jobs:
         run: |
           go test -v ./...
 
-docker:
-  runs-on: ubuntu-latest
-  needs: test
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
 
-  steps:
-    - uses: actions/checkout@v1
+    steps:
+      - uses: actions/checkout@v1
 
-    - name: Build
-      run: docker build .
+      - name: Build
+        run: docker build .
